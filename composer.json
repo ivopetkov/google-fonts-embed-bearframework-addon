@@ -1,0 +1,25 @@
+{
+    "name": "ivopetkov/google-fonts-embed-bearframework-addon",
+    "description": "Google Fonts embed addon for Bear Framework",
+    "keywords": ["google fonts", "embed", "addon", "Bear Framework"],
+    "homepage": "https://github.com/ivopetkov/google-fonts-embed-bearframework-addon",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Ivo Petkov",
+            "email": "ivo@ivopetkov.com",
+            "homepage": "http://ivopetkov.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.1",
+        "bearframework/bearframework": "1.*"
+    },
+    "require-dev": {
+        "bearframework/addon-tests": "0.3.*",
+        "phpunit/phpunit": "7.*"
+    },
+    "autoload": {
+        "files": ["autoload.php"]
+    }
+}
