@@ -81,7 +81,7 @@ $app->assets
                         $matches[1] = array_unique($matches[1]);
                         foreach ($matches[1] as $fontURL) {
                             $fontURLParts = explode('//', $fontURL);
-                            $newFontURL = isset($fontURLParts[1]) ? $context->assets->getURL('assets/embed/fonts/' . $fontURLParts[1], ['maxAge' => 86400 * 60]) : 'about:blank';
+                            $newFontURL = isset($fontURLParts[1]) ? $context->assets->getURL('assets/embed/fonts/' . $fontURLParts[1], ['cacheMaxAge' => 86400 * 60]) : 'about:blank';
                             $resultContent = str_replace($fontURL, $newFontURL, $resultContent);
                         }
                     }
