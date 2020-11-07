@@ -28,6 +28,9 @@ $app->assets
     ->addEventListener('beforePrepare', function (\BearFramework\App\Assets\BeforePrepareEventDetails $eventDetails) use ($app, $context) {
         $matchingDir = $context->dir . '/assets/embed/';
         if (strpos($eventDetails->filename, $matchingDir) === 0) {
+            $supportedPrefixes = [
+                'a' => 'fonts.gstatic.com/s/'
+            ];
             $filename = substr($eventDetails->filename, strlen($matchingDir));
 
             $download = function ($url, $userAgent = null) {
@@ -81,7 +84,16 @@ $app->assets
                     $matches[1] = array_unique($matches[1]);
                     foreach ($matches[1] as $fontURL) {
                         $fontURLParts = explode('//', $fontURL);
-                        $newFontURL = isset($fontURLParts[1]) ? $context->assets->getURL('assets/embed/fonts/' . $fontURLParts[1], ['cacheMaxAge' => 86400 * 60]) : 'about:blank';
+                        $newFontURL = 'about:blank';
+                        if (isset($fontURLParts[1])) {
+                            $fontURLPart1 = $fontURLParts[1];
+                            foreach ($supportedPrefixes as $index => $prefix) {
+                                if (strpos($fontURLPart1, $prefix) === 0) {
+                                    $newFontURL = $context->assets->getURL('assets/embed/fonts/' . $index . '/' . substr($fontURLPart1, strlen($prefix)), ['cacheMaxAge' => 86400 * 60]);
+                                    break;
+                                }
+                            }
+                        }
                         $resultContent = str_replace($fontURL, $newFontURL, $resultContent);
                     }
                 }
@@ -91,17 +103,31 @@ $app->assets
                 }
                 $eventDetails->filename = $app->data->getFilename($resultDataKey);
             } elseif (substr($filename, 0, 6) === 'fonts/') {
-                $fontURL = 'https://' . substr($filename, 6);
-                $fontDataKey = '.temp/google-fonts-embed/fonts/' . md5($fontURL) . '.' . pathinfo($fontURL, PATHINFO_EXTENSION);
+                $index = substr($filename, 6, 1);
+                if (isset($supportedPrefixes[$index])) {
+                    $fontURL = 'https://' . $supportedPrefixes[$index] . substr($filename, 8);
+                    $extension = strtolower(pathinfo($fontURL, PATHINFO_EXTENSION));
+                    if (preg_match('/^[a-z0-9]*$/', $extension) !== 1) {
+                        $extension = 'unknown';
+                    }
+                } else {
+                    $fontURL = 'invalid';
+                    $extension = 'invalid';
+                }
+                $fontDataKey = '.temp/google-fonts-embed/fonts/' . md5($fontURL) . '.' . $extension;
                 if (!$app->data->exists($fontDataKey)) {
-                    $urlResult = $download($fontURL);
-                    $statusCode = $urlResult[0];
-                    if ($statusCode === 200) {
-                        $fontContent = $urlResult[1];
-                    } elseif ($statusCode === 404) {
-                        $fontContent = '// font file not found';
+                    if ($extension === 'unknown' || $extension === 'invalid') {
+                        $fontContent = '// ' . $extension;
                     } else {
-                        $fontContent = '// font file not available (status code: ' . $statusCode . ')';
+                        $urlResult = $download($fontURL);
+                        $statusCode = $urlResult[0];
+                        if ($statusCode === 200) {
+                            $fontContent = $urlResult[1];
+                        } elseif ($statusCode === 404) {
+                            $fontContent = '// font file not found';
+                        } else {
+                            $fontContent = '// font file not available (status code: ' . $statusCode . ')';
+                        }
                     }
                     $app->data->set($app->data->make($fontDataKey, $fontContent));
                 }
