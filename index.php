@@ -52,17 +52,17 @@ $app->assets
                 if (strlen($fontName) === 0) {
                     return;
                 }
-                $sourceDataKey = '.temp/google-fonts-embed/css/' . md5($fontName) . '.source';
+                $url = 'https://fonts.googleapis.com/css2?family=' . rawurlencode($fontName);
+                $sourceDataKey = '.temp/google-fonts-embed/css/' . md5($url) . '.source';
                 $sourceContent = $app->data->getValue($sourceDataKey);
                 if ($sourceContent === null) {
                     $userAgents = [
-                        null, // truetype
+                        'Mozilla/5.0', // truetype
                         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/40.0.3729.169 Safari/537.36', // woff
                         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36', // woff2
                     ];
                     $sourceContent = '';
                     foreach ($userAgents as $index => $userAgent) {
-                        $url = 'https://fonts.googleapis.com/css?family=' . rawurlencode($fontName);
                         $urlResult = $download($url, $userAgent);
                         $statusCode = $urlResult[0];
                         if ($statusCode === 200) {
@@ -89,7 +89,7 @@ $app->assets
                             $fontURLPart1 = $fontURLParts[1];
                             foreach ($supportedPrefixes as $index => $prefix) {
                                 if (strpos($fontURLPart1, $prefix) === 0) {
-                                    $newFontURL = $context->assets->getURL('assets/embed/fonts/' . $index . '/' . substr($fontURLPart1, strlen($prefix)), ['cacheMaxAge' => 86400 * 60]);
+                                    $newFontURL = $context->assets->getURL('assets/embed/fonts/' . $index . '/' . substr($fontURLPart1, strlen($prefix)), ['cacheMaxAge' => 86400 * 60, 'version' => '1']);
                                     break;
                                 }
                             }
