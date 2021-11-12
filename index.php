@@ -52,7 +52,7 @@ $app->assets
                 if (strlen($fontName) === 0) {
                     return;
                 }
-                $url = 'https://fonts.googleapis.com/css2?family=' . rawurlencode($fontName);
+                $url = 'https://fonts.googleapis.com/css2?family=' . rawurlencode($fontName) . '&display=swap';
                 $sourceDataKey = '.temp/google-fonts-embed/css/' . md5($url) . '.source';
                 $sourceContent = $app->data->getValue($sourceDataKey);
                 if ($sourceContent === null) {

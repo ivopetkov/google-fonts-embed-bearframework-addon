@@ -27,6 +27,6 @@ class GoogleFontsEmbed
     {
         $app = App::get();
         $context = $app->contexts->get(__DIR__);
-        return $context->assets->getURL('assets/embed/css/' . str_replace(' ', '+', $name) . '.css', ['cacheMaxAge' => 86400 * 60, 'version' => '1']);
+        return $context->assets->getURL('assets/embed/css/' . str_replace(' ', '+', $name) . '.css', ['cacheMaxAge' => 86400 * 60, 'version' => '2']);
     }
 }
