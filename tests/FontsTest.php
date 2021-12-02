@@ -16,10 +16,15 @@ class FontsTest extends BearFramework\AddonTests\PHPUnitTestCase
     /**
      * 
      */
-    public function testCreate()
+    public function testBasics()
     {
         $app = $this->getApp();
-        $this->assertTrue(true);
-    }
 
+        $url = $app->googleFontsEmbed->getURL('Roboto');
+
+        $response = $this->processRequest($this->makeRequest($url));
+        $this->assertTrue($response instanceof \BearFramework\App\Response\FileReader);
+        $cssFileContent = file_get_contents($response->filename);
+        $this->assertTrue(strpos($cssFileContent, '@font-face') !== false);
+    }
 }
