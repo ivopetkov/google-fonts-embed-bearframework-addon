@@ -66,7 +66,11 @@ $app->assets
                         $urlResult = $download($url, $userAgent);
                         $statusCode = $urlResult[0];
                         if ($statusCode === 200) {
-                            $sourceContent .= trim($urlResult[1]);
+                            if (strpos($urlResult[1], 'license/googlerestricted') !== false) {
+                                $sourceContent .= '// font css (' . $index . ') restricted';
+                            } else {
+                                $sourceContent .= trim($urlResult[1]);
+                            }
                         } elseif ($statusCode === 404) {
                             $sourceContent .= '// font css (' . $index . ') not found';
                         } else {
