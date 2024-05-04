@@ -10,6 +10,7 @@
 namespace IvoPetkov\BearFrameworkAddons;
 
 use BearFramework\App;
+use IvoPetkov\BearFrameworkAddons\GoogleFontsEmbed\Internal\Utilities;
 
 /**
  *
@@ -28,5 +29,19 @@ class GoogleFontsEmbed
         $app = App::get();
         $context = $app->contexts->get(__DIR__);
         return $context->assets->getURL('assets/embed/css/' . str_replace(' ', '+', $name) . '.css', ['cacheMaxAge' => 86400 * 60, 'version' => '2']);
+    }
+
+    /**
+     * Returns a list of URLs containing all files needed by the font
+     *
+     * @param string $name The name of The Google Font.
+     * @return array
+     */
+    public function getResourcesURLs(string $name): array
+    {
+        $fileDetails = Utilities::getCSSFileDetails($name);
+        $urls = $fileDetails['fontFilesURLs'];
+        array_unshift($urls, $this->getURL($name));
+        return $urls;
     }
 }

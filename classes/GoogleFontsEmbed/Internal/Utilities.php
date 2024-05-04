@@ -1,0 +1,159 @@
+<?php
+
+/*
+ * Google Fonts embed addon for Bear Framework
+ * https://github.com/ivopetkov/google-fonts-embed-bearframework-addon
+ * Copyright (c) Ivo Petkov
+ * Free to use under the MIT license.
+ */
+
+namespace IvoPetkov\BearFrameworkAddons\GoogleFontsEmbed\Internal;
+
+use BearFramework\App;
+
+/**
+ *
+ */
+class Utilities
+{
+
+    static $supportedPrefixes = [
+        'a' => 'fonts.gstatic.com/s/'
+    ];
+
+    /**
+     * 
+     * @param string $url
+     * @param string|null $userAgent
+     * @return array
+     */
+    static private function getURLResponse(string $url, string $userAgent = null): array
+    {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        if ($userAgent !== null) {
+            curl_setopt($ch, CURLOPT_USERAGENT, $userAgent);
+        }
+        $response = curl_exec($ch);
+        $statusCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        return [$statusCode, $response];
+    }
+
+    /**
+     * 
+     * @param string $fontName
+     * @return array
+     */
+    static function getCSSFileDetails(string $fontName): array
+    {
+        $app = App::get();
+        $context = $app->contexts->get(__DIR__);
+
+        $result = [
+            'dataKey' => '',
+            'content' => '',
+            'fontFilesURLs' => []
+        ];
+        $url = 'https://fonts.googleapis.com/css2?family=' . rawurlencode($fontName) . ':ital,wght@0,400;0,700;1,400;1,700&display=swap';
+        $sourceDataKey = '.temp/google-fonts-embed/css/' . md5($url) . '.source';
+        $sourceContent = $app->data->getValue($sourceDataKey);
+        if ($sourceContent === null) {
+            $userAgents = [
+                'Mozilla/5.0', // truetype
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/40.0.3729.169 Safari/537.36', // woff
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36', // woff2
+            ];
+            $sourceContent = '';
+            foreach ($userAgents as $index => $userAgent) {
+                $urlResponse = self::getURLResponse($url, $userAgent);
+                $statusCode = $urlResponse[0];
+                if ($statusCode === 200) {
+                    if (strpos($urlResponse[1], 'license/googlerestricted') !== false) {
+                        $sourceContent .= '// font css (' . $index . ') restricted';
+                    } else {
+                        $sourceContent .= trim($urlResponse[1]);
+                    }
+                } elseif ($statusCode === 404) {
+                    $sourceContent .= '// font css (' . $index . ') not found';
+                } else {
+                    $sourceContent .= '// font css (' . $index . ') not available (status code: ' . $statusCode . ')';
+                }
+                $sourceContent .= "\n";
+            }
+            $sourceContent = trim($sourceContent);
+            $app->data->set($app->data->make($sourceDataKey, $sourceContent));
+        }
+        $resultContent = $sourceContent;
+        $matches = null;
+        preg_match_all('/url\((.*?)\)/', $resultContent, $matches);
+        if (isset($matches[1])) {
+            $matches[1] = array_unique($matches[1]);
+            foreach ($matches[1] as $fontURL) {
+                $fontURLParts = explode('//', $fontURL);
+                $newFontURL = 'about:blank';
+                if (isset($fontURLParts[1])) {
+                    $fontURLPart1 = $fontURLParts[1];
+                    foreach (self::$supportedPrefixes as $index => $prefix) {
+                        if (strpos($fontURLPart1, $prefix) === 0) {
+                            $newFontURL = $context->assets->getURL('assets/embed/fonts/' . $index . '/' . substr($fontURLPart1, strlen($prefix)), ['cacheMaxAge' => 86400 * 60, 'version' => '1']);
+                            $result['fontFilesURLs'][] = $newFontURL;
+                            break;
+                        }
+                    }
+                }
+                $resultContent = str_replace($fontURL, $newFontURL, $resultContent);
+            }
+        }
+        $cssDataKey = '.temp/google-fonts-embed/css/' . md5($resultContent) . '.css';
+        if (!$app->data->exists($cssDataKey)) {
+            $app->data->set($app->data->make($cssDataKey, $resultContent));
+        }
+        $result['dataKey'] = $cssDataKey;
+        $result['content'] = $resultContent;
+        return $result;
+    }
+
+    /**
+     * 
+     * @param string $filename
+     * @return array
+     */
+    static function getFontFileDetails(string $filename): array
+    {
+        $app = App::get();
+        $index = substr($filename, 6, 1);
+        if (isset(self::$supportedPrefixes[$index])) {
+            $fontURL = 'https://' . self::$supportedPrefixes[$index] . substr($filename, 8);
+            $extension = strtolower(pathinfo($fontURL, PATHINFO_EXTENSION));
+            if (preg_match('/^[a-z0-9]*$/', $extension) !== 1) {
+                $extension = 'unknown';
+            }
+        } else {
+            $fontURL = 'invalid';
+            $extension = 'invalid';
+        }
+        $fontDataKey = '.temp/google-fonts-embed/fonts/' . md5($fontURL) . '.' . $extension;
+        if (!$app->data->exists($fontDataKey)) {
+            if ($extension === 'unknown' || $extension === 'invalid') {
+                $fontContent = '// ' . $extension;
+            } else {
+                $urlResponse = self::getURLResponse($fontURL);
+                $statusCode = $urlResponse[0];
+                if ($statusCode === 200) {
+                    $fontContent = $urlResponse[1];
+                } elseif ($statusCode === 404) {
+                    $fontContent = '// font file not found';
+                } else {
+                    $fontContent = '// font file not available (status code: ' . $statusCode . ')';
+                }
+            }
+            $app->data->set($app->data->make($fontDataKey, $fontContent));
+        }
+        return [
+            'dataKey' => $fontDataKey
+        ];
+    }
+}
