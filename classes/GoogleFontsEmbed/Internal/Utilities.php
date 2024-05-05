@@ -21,6 +21,8 @@ class Utilities
         'a' => 'fonts.gstatic.com/s/'
     ];
 
+    static $fontDisplayValues = ['a' => 'auto', 'b' => 'block', 's' => 'swap', 'f' => 'fallback', 'o' => 'optional'];
+
     /**
      * 
      * @param string $url
@@ -44,10 +46,11 @@ class Utilities
 
     /**
      * 
-     * @param string $fontName
+     * @param string $name
+     * @param array $options Available values: display (auto, block, swap, fallback, optional)
      * @return array
      */
-    static function getCSSFileDetails(string $fontName): array
+    static function getCSSFileDetails(string $name, array $options = []): array
     {
         $app = App::get();
         $context = $app->contexts->get(__DIR__);
@@ -57,7 +60,11 @@ class Utilities
             'content' => '',
             'fontFilesURLs' => []
         ];
-        $url = 'https://fonts.googleapis.com/css2?family=' . rawurlencode($fontName) . ':ital,wght@0,400;0,700;1,400;1,700&display=swap';
+        $display = isset($options['display']) ? $options['display'] : 'auto';
+        if (array_search($display, array_values(self::$fontDisplayValues)) === false) {
+            $display = 'auto';
+        }
+        $url = 'https://fonts.googleapis.com/css2?family=' . rawurlencode($name) . ':ital,wght@0,400;0,700;1,400;1,700&display=' . $display;
         $sourceDataKey = '.temp/google-fonts-embed/css/' . md5($url) . '.source';
         $sourceContent = $app->data->getValue($sourceDataKey);
         if ($sourceContent === null) {
