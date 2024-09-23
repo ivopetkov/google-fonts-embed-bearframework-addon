@@ -45,6 +45,14 @@ $app->assets
                             if (isset(Utilities::$fontDisplayValues[$display])) {
                                 $options['display'] = Utilities::$fontDisplayValues[$display];
                             }
+                        } elseif (substr($part, 0, 1) === 'f') {
+                            $formats = str_split(substr($part, 1), 1);
+                            $options['formats'] = [];
+                            foreach ($formats as $format) {
+                                if (isset(Utilities::$formatsValues[$format])) {
+                                    $options['formats'][] = Utilities::$formatsValues[$format];
+                                }
+                            }
                         }
                     }
                 }

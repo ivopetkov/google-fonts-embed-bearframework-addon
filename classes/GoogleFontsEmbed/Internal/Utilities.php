@@ -23,6 +23,8 @@ class Utilities
 
     static $fontDisplayValues = ['a' => 'auto', 'b' => 'block', 's' => 'swap', 'f' => 'fallback', 'o' => 'optional'];
 
+    static $formatsValues = ['t' => 'ttf', 'o' => 'otf', 'w' => 'woff', 'f' => 'woff2'];
+
     /**
      * 
      * @param string $url
@@ -47,7 +49,7 @@ class Utilities
     /**
      * 
      * @param string $name
-     * @param array $options Available values: display (auto, block, swap, fallback, optional)
+     * @param array $options Available values: display (auto, block, swap, fallback, optional), Formats: ['woff2', 'woff', 'ttf']
      * @return array
      */
     static function getCSSFileDetails(string $name, array $options = []): array
@@ -61,6 +63,7 @@ class Utilities
             'fontFilesURLs' => []
         ];
         $display = isset($options['display']) ? $options['display'] : 'auto';
+        $formats = isset($options['formats']) ? $options['formats'] : [];
         if (array_search($display, array_values(self::$fontDisplayValues)) === false) {
             $display = 'auto';
         }
@@ -94,6 +97,30 @@ class Utilities
             $app->data->set($app->data->make($sourceDataKey, $sourceContent));
         }
         $resultContent = $sourceContent;
+        $resultContent = preg_replace('/\/\*.*\*\/\n/', '', $resultContent);
+        $resultContent = preg_replace('/@font\-face {/', '@font-face{', $resultContent);
+        $resultContent = preg_replace('/\n  /', '', $resultContent);
+        $resultContent = preg_replace('/\n}/', '}', $resultContent);
+        $resultContent = preg_replace('/: /', '', $resultContent);
+
+        if (!empty($formats)) {
+            $matches = null;
+            preg_match_all('/@font\-face{.*?}/', $resultContent, $matches);
+            $temp = [];
+            foreach ($matches[0] as $match) {
+                foreach ($formats as $format) {
+                    if ($format === 'ttf' || $format === 'otf') {
+                        $format = 'truetype';
+                    }
+                    if (strpos($match, 'format(\'' . $format . '\')') !== false) {
+                        $temp[] = $match;
+                        break;
+                    }
+                }
+            }
+            $resultContent = implode("\n", $temp);
+        }
+
         $matches = null;
         preg_match_all('/url\((.*?)\)/', $resultContent, $matches);
         if (isset($matches[1])) {
