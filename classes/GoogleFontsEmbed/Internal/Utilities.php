@@ -101,7 +101,7 @@ class Utilities
         $resultContent = preg_replace('/@font\-face {/', '@font-face{', $resultContent);
         $resultContent = preg_replace('/\n  /', '', $resultContent);
         $resultContent = preg_replace('/\n}/', '}', $resultContent);
-        $resultContent = preg_replace('/: /', '', $resultContent);
+        $resultContent = preg_replace('/: /', ':', $resultContent);
 
         if (!empty($formats)) {
             $matches = null;
