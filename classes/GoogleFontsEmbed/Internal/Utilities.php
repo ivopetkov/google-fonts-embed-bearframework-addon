@@ -102,6 +102,7 @@ class Utilities
         $resultContent = preg_replace('/\n  /', '', $resultContent);
         $resultContent = preg_replace('/\n}/', '}', $resultContent);
         $resultContent = preg_replace('/: /', ':', $resultContent);
+        $resultContent = preg_replace('/, U\+/', ',U+', $resultContent);
 
         if (!empty($formats)) {
             $matches = null;
@@ -132,7 +133,7 @@ class Utilities
                     $fontURLPart1 = $fontURLParts[1];
                     foreach (self::$supportedPrefixes as $index => $prefix) {
                         if (strpos($fontURLPart1, $prefix) === 0) {
-                            $newFontURL = $context->assets->getURL('assets/embed/fonts/' . $index . '/' . substr($fontURLPart1, strlen($prefix)), ['cacheMaxAge' => 86400 * 120, 'version' => '3']);
+                            $newFontURL = $context->assets->getURL('assets/embed/fonts/' . $index . '/' . substr($fontURLPart1, strlen($prefix)), ['cacheMaxAge' => 86400 * 120, 'version' => '4']);
                             $result['fontFilesURLs'][] = $newFontURL;
                             break;
                         }
