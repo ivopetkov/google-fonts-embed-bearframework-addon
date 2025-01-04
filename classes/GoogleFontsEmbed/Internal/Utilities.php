@@ -31,7 +31,7 @@ class Utilities
      * @param string|null $userAgent
      * @return array
      */
-    static private function getURLResponse(string $url, string $userAgent = null): array
+    static private function getURLResponse(string $url, ?string $userAgent = null): array
     {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);

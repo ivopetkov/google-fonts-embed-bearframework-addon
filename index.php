@@ -27,14 +27,14 @@ $context->assets
     ->addDir('assets/embed/fonts/');
 
 $app->assets
-    ->addEventListener('beforePrepare', function (\BearFramework\App\Assets\BeforePrepareEventDetails $eventDetails) use ($app, $context) {
+    ->addEventListener('beforePrepare', function (\BearFramework\App\Assets\BeforePrepareEventDetails $eventDetails) use ($app, $context): void {
         $matchingDir = $context->dir . '/assets/embed/';
         if (strpos($eventDetails->filename, $matchingDir) === 0) {
             $filename = substr($eventDetails->filename, strlen($matchingDir));
             if (substr($filename, 0, 4) === 'css/') {
                 $name = trim(str_replace('+', ' ', substr($filename, 4, -4))); // css/*.css
                 $parts = explode('.', $name);
-                $partsCount = sizeof($parts);
+                $partsCount = count($parts);
                 $options = [];
                 if ($partsCount > 1) {
                     $name = $parts[0];
