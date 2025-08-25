@@ -164,7 +164,7 @@ class Utilities
                         $fontURLPart1 = $fontURLParts[1];
                         foreach (self::$supportedPrefixes as $index => $prefix) {
                             if (strpos($fontURLPart1, $prefix) === 0) {
-                                $newFontURL = $context->assets->getURL('assets/embed/fonts/' . $index . '/' . substr($fontURLPart1, strlen($prefix)), ['cacheMaxAge' => 86400 * 120, 'version' => '5']);
+                                $newFontURL = $context->assets->getURL('assets/embed/fonts/' . $index . '/' . substr($fontURLPart1, strlen($prefix)), ['cacheMaxAge' => 86400 * 120, 'version' => '6']);
                                 $result['fontFilesURLs'][] = $newFontURL;
                                 break;
                             }
