@@ -90,7 +90,14 @@ class Utilities
             foreach ($fontData['weights'] as $weight) {
                 $weightsParam[] = strpos($weight, 'i') !== false ? '1,' . str_replace('i', '', $weight) : '0,' . $weight;
             }
-            sort($weightsParam);
+            usort($weightsParam, function ($a, $b) {
+                list($aItalic, $aWeight) = explode(',', $a);
+                list($bItalic, $bWeight) = explode(',', $b);
+                if ($aItalic !== $bItalic) {
+                    return $aItalic === '0' ? -1 : 1;
+                }
+                return (int)$aWeight - (int)$bWeight;
+            });
             $url = 'https://fonts.googleapis.com/css2?family=' . rawurlencode($fontData['name']) . ':ital,wght@' . implode(';', $weightsParam) . '&display=' . $display;
             $sourceDataKey = '.temp/google-fonts-embed/css/' . md5($url) . '.source';
             $sourceContent = $app->data->getValue($sourceDataKey);
