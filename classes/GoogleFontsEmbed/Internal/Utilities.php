@@ -25,6 +25,23 @@ class Utilities
 
     static $formatsValues = ['t' => 'ttf', 'o' => 'otf', 'w' => 'woff', 'f' => 'woff2'];
 
+    static private $fontsDataCache = null;
+
+    /**
+     * 
+     * @param string $name
+     * @return array|null
+     */
+    static function getFontsData(string $name): ?array
+    {
+        if (self::$fontsDataCache === null) {
+            $app = App::get();
+            $context = $app->contexts->get(__DIR__);
+            self::$fontsDataCache = require $context->dir . '/fonts.php';
+        }
+        return isset(self::$fontsDataCache[strtolower($name)]) ? self::$fontsDataCache[strtolower($name)] : null;
+    }
+
     /**
      * 
      * @param string $url
@@ -67,80 +84,90 @@ class Utilities
         if (array_search($display, array_values(self::$fontDisplayValues)) === false) {
             $display = 'auto';
         }
-        $url = 'https://fonts.googleapis.com/css2?family=' . rawurlencode($name) . ':ital,wght@0,400;0,700;1,400;1,700&display=' . $display;
-        $sourceDataKey = '.temp/google-fonts-embed/css/' . md5($url) . '.source';
-        $sourceContent = $app->data->getValue($sourceDataKey);
-        if ($sourceContent === null) {
-            $userAgents = [
-                'Mozilla/5.0', // truetype
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/40.0.3729.169 Safari/537.36', // woff
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36', // woff2
-            ];
-            $sourceContent = '';
-            foreach ($userAgents as $index => $userAgent) {
-                $urlResponse = self::getURLResponse($url, $userAgent);
-                $statusCode = $urlResponse[0];
-                if ($statusCode === 200) {
-                    if (strpos($urlResponse[1], 'license/googlerestricted') !== false) {
-                        $sourceContent .= '// font css (' . $index . ') restricted';
+        $fontData = self::getFontsData($name);
+        if (is_array($fontData)) {
+            $weightsParam = [];
+            foreach ($fontData['weights'] as $weight) {
+                $weightsParam[] = strpos($weight, 'i') !== false ? '1,' . str_replace('i', '', $weight) : '0,' . $weight;
+            }
+            sort($weightsParam);
+            $url = 'https://fonts.googleapis.com/css2?family=' . rawurlencode($fontData['name']) . ':ital,wght@' . implode(';', $weightsParam) . '&display=' . $display;
+            $sourceDataKey = '.temp/google-fonts-embed/css/' . md5($url) . '.source';
+            $sourceContent = $app->data->getValue($sourceDataKey);
+            if ($sourceContent === null) {
+                $userAgents = [
+                    'Mozilla/5.0', // truetype
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/40.0.3729.169 Safari/537.36', // woff
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36', // woff2
+                ];
+                $sourceContent = '';
+                foreach ($userAgents as $index => $userAgent) {
+                    $urlResponse = self::getURLResponse($url, $userAgent);
+                    $statusCode = $urlResponse[0];
+                    if ($statusCode === 200) {
+                        if (strpos($urlResponse[1], 'license/googlerestricted') !== false) {
+                            $sourceContent .= '// font css (' . $index . ') restricted';
+                        } else {
+                            $sourceContent .= trim($urlResponse[1]);
+                        }
+                    } elseif ($statusCode === 404) {
+                        $sourceContent .= '// font css (' . $index . ') not found';
                     } else {
-                        $sourceContent .= trim($urlResponse[1]);
+                        $sourceContent .= '// font css (' . $index . ') not available (status code: ' . $statusCode . ')';
                     }
-                } elseif ($statusCode === 404) {
-                    $sourceContent .= '// font css (' . $index . ') not found';
-                } else {
-                    $sourceContent .= '// font css (' . $index . ') not available (status code: ' . $statusCode . ')';
+                    $sourceContent .= "\n";
                 }
-                $sourceContent .= "\n";
+                $sourceContent = trim($sourceContent);
+                $app->data->set($app->data->make($sourceDataKey, $sourceContent));
             }
-            $sourceContent = trim($sourceContent);
-            $app->data->set($app->data->make($sourceDataKey, $sourceContent));
-        }
-        $resultContent = $sourceContent;
-        $resultContent = preg_replace('/\/\*.*\*\/\n/', '', $resultContent);
-        $resultContent = preg_replace('/@font\-face {/', '@font-face{', $resultContent);
-        $resultContent = preg_replace('/\n  /', '', $resultContent);
-        $resultContent = preg_replace('/\n}/', '}', $resultContent);
-        $resultContent = preg_replace('/: /', ':', $resultContent);
-        $resultContent = preg_replace('/, U\+/', ',U+', $resultContent);
+            $resultContent = $sourceContent;
+            $resultContent = preg_replace('/\/\*.*\*\/\n/', '', $resultContent);
+            $resultContent = preg_replace('/@font\-face {/', '@font-face{', $resultContent);
+            $resultContent = preg_replace('/\n  /', '', $resultContent);
+            $resultContent = preg_replace('/\n}/', '}', $resultContent);
+            $resultContent = preg_replace('/: /', ':', $resultContent);
+            $resultContent = preg_replace('/, U\+/', ',U+', $resultContent);
 
-        if (!empty($formats)) {
-            $matches = null;
-            preg_match_all('/@font\-face{.*?}/', $resultContent, $matches);
-            $temp = [];
-            foreach ($matches[0] as $match) {
-                foreach ($formats as $format) {
-                    if ($format === 'ttf' || $format === 'otf') {
-                        $format = 'truetype';
-                    }
-                    if (strpos($match, 'format(\'' . $format . '\')') !== false) {
-                        $temp[] = $match;
-                        break;
-                    }
-                }
-            }
-            $resultContent = implode("\n", $temp);
-        }
-
-        $matches = null;
-        preg_match_all('/url\((.*?)\)/', $resultContent, $matches);
-        if (isset($matches[1])) {
-            $matches[1] = array_unique($matches[1]);
-            foreach ($matches[1] as $fontURL) {
-                $fontURLParts = explode('//', $fontURL);
-                $newFontURL = 'about:blank';
-                if (isset($fontURLParts[1])) {
-                    $fontURLPart1 = $fontURLParts[1];
-                    foreach (self::$supportedPrefixes as $index => $prefix) {
-                        if (strpos($fontURLPart1, $prefix) === 0) {
-                            $newFontURL = $context->assets->getURL('assets/embed/fonts/' . $index . '/' . substr($fontURLPart1, strlen($prefix)), ['cacheMaxAge' => 86400 * 120, 'version' => '4']);
-                            $result['fontFilesURLs'][] = $newFontURL;
+            if (!empty($formats)) {
+                $matches = null;
+                preg_match_all('/@font\-face{.*?}/', $resultContent, $matches);
+                $temp = [];
+                foreach ($matches[0] as $match) {
+                    foreach ($formats as $format) {
+                        if ($format === 'ttf' || $format === 'otf') {
+                            $format = 'truetype';
+                        }
+                        if (strpos($match, 'format(\'' . $format . '\')') !== false) {
+                            $temp[] = $match;
                             break;
                         }
                     }
                 }
-                $resultContent = str_replace($fontURL, $newFontURL, $resultContent);
+                $resultContent = implode("\n", $temp);
             }
+
+            $matches = null;
+            preg_match_all('/url\((.*?)\)/', $resultContent, $matches);
+            if (isset($matches[1])) {
+                $matches[1] = array_unique($matches[1]);
+                foreach ($matches[1] as $fontURL) {
+                    $fontURLParts = explode('//', $fontURL);
+                    $newFontURL = 'about:blank';
+                    if (isset($fontURLParts[1])) {
+                        $fontURLPart1 = $fontURLParts[1];
+                        foreach (self::$supportedPrefixes as $index => $prefix) {
+                            if (strpos($fontURLPart1, $prefix) === 0) {
+                                $newFontURL = $context->assets->getURL('assets/embed/fonts/' . $index . '/' . substr($fontURLPart1, strlen($prefix)), ['cacheMaxAge' => 86400 * 120, 'version' => '5']);
+                                $result['fontFilesURLs'][] = $newFontURL;
+                                break;
+                            }
+                        }
+                    }
+                    $resultContent = str_replace($fontURL, $newFontURL, $resultContent);
+                }
+            }
+        } else {
+            $resultContent = '// font not found';
         }
         $cssDataKey = '.temp/google-fonts-embed/css/' . md5($resultContent) . '.css';
         if (!$app->data->exists($cssDataKey)) {

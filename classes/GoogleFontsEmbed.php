@@ -44,7 +44,7 @@ class GoogleFontsEmbed
                 $formatIDs .= $formatID;
             }
         }
-        return $context->assets->getURL('assets/embed/css/' . str_replace(' ', '+', $name) . ($display !== '' ? '.d' . $display : '') . ($formatIDs !== '' ? '.f' . $formatIDs : '') . '.css', ['cacheMaxAge' => 86400 * 120, 'version' => '4']);
+        return $context->assets->getURL('assets/embed/css/' . str_replace(' ', '+', $name) . ($display !== '' ? '.d' . $display : '') . ($formatIDs !== '' ? '.f' . $formatIDs : '') . '.css', ['cacheMaxAge' => 86400 * 120, 'version' => '5']);
     }
 
     /**
