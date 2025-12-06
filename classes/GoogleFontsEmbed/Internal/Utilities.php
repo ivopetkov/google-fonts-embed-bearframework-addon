@@ -59,7 +59,7 @@ class Utilities
         }
         $response = curl_exec($ch);
         $statusCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        // curl_close($ch); not needed since PHP 8.0
         return [$statusCode, $response];
     }
 
