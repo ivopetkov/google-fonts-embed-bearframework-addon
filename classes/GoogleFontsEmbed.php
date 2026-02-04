@@ -48,6 +48,17 @@ class GoogleFontsEmbed
     }
 
     /**
+     * 
+     * @param string $name The name of The Google Font.
+     * @param array $options Available values: display (auto, block, swap, fallback, optional), Formats: ['woff2', 'woff', 'ttf']
+     * @return string
+     */
+    public function getCSS(string $name, array $options = []): string
+    {
+        return Utilities::getCSSFileDetails($name, $options)['content'];
+    }
+
+    /**
      * Returns a list of URLs containing all files needed by the font
      *
      * @param string $name The name of The Google Font.
